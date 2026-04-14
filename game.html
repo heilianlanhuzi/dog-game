@@ -7,23 +7,16 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:none;user-select:none;font-family:Arial,sans-serif}
-.card{position:absolute;width:120px;height:120px;cursor:grab;transition:box-shadow 0.3s;border-radius:10px}
+.card{position:absolute;width:120px;height:120px;cursor:grab;transition:box-shadow 0.2s;border-radius:10px}
 .card img{width:100%;height:100%;border-radius:10px;pointer-events:none;-webkit-user-drag:none;user-select:none}
-.card.locked{cursor:default;box-shadow:0 0 20px 5px rgba(255,215,0,0.6);border:3px solid gold}
+.card.locked{cursor:default;box-shadow:0 0 0 3px rgba(76,175,80,0.6)}
 #start-screen{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;flex-direction:column;z-index:10}
 #start-btn{padding:15px 40px;font-size:24px;border:none;border-radius:30px;background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
 #game-area{display:none;position:relative;width:100vw;height:100vh}
-#level-info{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:#fff;padding:8px 20px;border-radius:20px;font-size:16px;z-index:5;white-space:nowrap}
+#replay-btn{position:fixed;top:10px;right:10px;font-size:20px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:44px;height:44px;cursor:pointer;z-index:5}
 #win-screen{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:10}
 #win-screen h1{font-size:36px;color:#ffd700;margin-bottom:20px;text-shadow:0 0 10px rgba(255,215,0,0.5)}
-#replay-btn{padding:12px 30px;font-size:20px;border:none;border-radius:20px;background:#4caf50;color:#fff;cursor:pointer;margin:5px}
-#sound-btn{position:fixed;bottom:10px;right:10px;font-size:24px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;z-index:5}
-#hint-btn{position:fixed;bottom:10px;left:10px;font-size:20px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;z-index:5}
-#hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);display:none;justify-content:center;align-items:center;z-index:8}
-.hint-box{position:relative;width:360px;height:360px;background:#f5f5e8;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,0.5)}
-#hint-close{position:absolute;top:8px;right:12px;font-size:24px;cursor:pointer;color:#555;z-index:9}
-#hint-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:#888;font-size:12px;z-index:9}
-#sketch-canvas{position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair}
+#win-btn{padding:12px 30px;font-size:20px;border:none;border-radius:20px;background:#4caf50;color:#fff;cursor:pointer;margin:5px}
 </style>
 </head>
 <body>
@@ -34,114 +27,92 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 </div>
 
 <div id="game-area">
-  <div class="card" id="card1"><img alt=""></div>
-  <div class="card" id="card2"><img alt=""></div>
-  <div class="card" id="card3"><img alt=""></div>
+  <div class="card" id="card1" style="display:none"><img alt=""></div>
+  <div class="card" id="card2" style="display:none"><img alt=""></div>
+  <div class="card" id="card3" style="display:none"><img alt=""></div>
 </div>
 
-<div id="level-info"></div>
+<button id="replay-btn" style="display:none">🔄</button>
 
 <div id="win-screen">
-  <h1>🎉 太棒了！</h1>
+  <h1>🎉</h1>
   <p id="win-text" style="color:#fff;margin-bottom:15px;font-size:18px"></p>
-  <button id="replay-btn">再玩一次</button>
-</div>
-
-<button id="sound-btn">🔊</button>
-<button id="hint-btn">💡</button>
-
-<div id="hint-overlay">
-  <div class="hint-box">
-    <canvas id="sketch-canvas"></canvas>
-    <div id="hint-close">✖</div>
-    <div id="hint-label">✏️ 擦除铅笔线条，查看正确位置轮廓</div>
-  </div>
+  <button id="win-btn">再来一次</button>
 </div>
 
 <script>
 var audioCtx=null,soundOn=true;
 function initAudio(){if(!audioCtx){audioCtx=new(window.AudioContext||window.webkitAudioContext)()}}
-function playClick(){if(!soundOn||!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=800+Math.random()*400;g.gain.setValueAtTime(0.08,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.05);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.05)}
-function playLock(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523,659,784].forEach(function(f,i){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*0.1);g.gain.linearRampToValueAtTime(0.12,t+i*0.1+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.3);o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.1);o.stop(t+i*0.1+0.3)})}
-function playWin(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523,659,784,1047].forEach(function(f,i){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*0.15);g.gain.linearRampToValueAtTime(0.15,t+i*0.15+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.15+0.5);o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.15);o.stop(t+i*0.15+0.5)})}
-function playErase(){if(!soundOn||!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sawtooth';o.frequency.value=200+Math.random()*100;g.gain.setValueAtTime(0.02,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.03);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.03)}
+function playClick(){if(!soundOn||!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=600+Math.random()*300;g.gain.setValueAtTime(0.06,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.04);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.04)}
+function playLock(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523,659,784].forEach(function(f,i){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*0.1);g.gain.linearRampToValueAtTime(0.1,t+i*0.1+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.25);o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.1);o.stop(t+i*0.1+0.25)})}
+function playWin(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523,659,784,1047].forEach(function(f,i){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*0.12);g.gain.linearRampToValueAtTime(0.12,t+i*0.12+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.12+0.4);o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.12);o.stop(t+i*0.12+0.4)})}
 
 var cardData=[
-  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1},
-  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1},
-  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1}
+  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1,targetRot:0}
 ];
 var dragIdx=-1,dragOx=0,dragOy=0;
 var rotIdx=-1,rotStartAngle=0,rotStartRot=0;
-var phase='memory';
+var phase='start';
 var currentLevel=1;
 var levelConfigs={};
 
 var startScreen=document.getElementById('start-screen');
 var gameArea=document.getElementById('game-area');
 var winScreen=document.getElementById('win-screen');
-var levelInfo=document.getElementById('level-info');
-var hintOverlay=document.getElementById('hint-overlay');
-var sketchCanvas=document.getElementById('sketch-canvas');
-var sketchCtx=sketchCanvas.getContext('2d');
+var replayBtn=document.getElementById('replay-btn');
 
 document.getElementById('start-btn').addEventListener('click',function(){initAudio();startScreen.style.display='none';gameArea.style.display='block';currentLevel=1;setupLevel()});
-document.getElementById('sound-btn').addEventListener('click',function(){soundOn=!soundOn;this.textContent=soundOn?'🔊':'🔇'});
-document.getElementById('replay-btn').addEventListener('click',function(){winScreen.style.display='none';currentLevel=1;setupLevel()});
-document.getElementById('hint-btn').addEventListener('click',function(){hintOverlay.style.display='flex';initSketch()});
-document.getElementById('hint-close').addEventListener('click',function(){hintOverlay.style.display='none'});
+document.getElementById('win-btn').addEventListener('click',function(){winScreen.style.display='none';currentLevel=1;setupLevel()});
+replayBtn.addEventListener('click',function(){setupLevel()});
 
-/* ========== level config ========== */
 function generateLevelConfig(level){
   var w=window.innerWidth,h=window.innerHeight,baseSize=120;
-  var positions;
+  var cfg={numCards:level===1?1:3,positions:[],scales:[],scatter:[],scatterRot:[],memoryTime:level===1?1500:1500};
+
   if(level===1){
-    positions=[
-      {x:Math.max(20,(w-baseSize)/4),y:Math.max(60,(h-baseSize)/4)},
-      {x:(w-baseSize)/2,y:(h-baseSize)/2},
-      {x:Math.min(w-baseSize-20,w-(w-baseSize)/4-baseSize),y:Math.min(h-baseSize-60,h-(h-baseSize)/4-baseSize)}
-    ];
+    cfg.positions.push({x:(w-baseSize)/2,y:(h-baseSize)/2});
+    cfg.scales.push(1);
+    cfg.scatter.push({x:(w-baseSize)/2,y:(h-baseSize)/2});
+    cfg.scatterRot.push(90+Math.floor(Math.random()*3)*90);
   }else{
-    positions=[
+    var positions=[
       {x:Math.max(20,(w-baseSize)/3),y:Math.max(60,(h-baseSize)/3)},
       {x:Math.min(w-baseSize-20,w-(w-baseSize)*2/3),y:Math.max(60,(h-baseSize)*2/3)},
       {x:(w-baseSize)/2,y:Math.min(h-baseSize-60,h-(h-baseSize)/4-baseSize)}
     ];
+    for(var i=0;i<3;i++){
+      cfg.positions.push(positions[i]);
+      cfg.scales.push(0.75+Math.random()*0.25);
+      var cs=baseSize*cfg.scales[i];
+      cfg.scatter.push({x:Math.random()*(w-cs-40)+20,y:Math.random()*(h-cs-40)+20});
+      cfg.scatterRot.push(Math.floor(Math.random()*360)-180);
+    }
   }
-  var scales=[0.7+Math.random()*0.3, 0.7+Math.random()*0.3, 0.7+Math.random()*0.3];
-  var scatter=[];
-  for(var i=0;i<3;i++){
-    var cs=baseSize*scales[i];
-    scatter.push({
-      x:Math.random()*(w-cs-40)+20,
-      y:Math.random()*(h-cs-40)+20,
-      r:Math.floor(Math.random()*90)-45
-    });
-  }
-  return{positions:positions,scales:scales,scatter:scatter,memoryTime:level===1?2000:1200};
+  return cfg;
 }
 
-/* ========== SVG animals ========== */
 var animals=[
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="35" ry="30" fill="#f5a623"/><circle cx="60" cy="55" r="25" fill="#f5a623"/><polygon points="35,35 28,10 48,30" fill="#f5a623"/><polygon points="85,35 92,10 72,30" fill="#f5a623"/><circle cx="48" cy="50" r="4" fill="#333"/><circle cx="72" cy="50" r="4" fill="#333"/><ellipse cx="60" cy="60" rx="5" ry="3" fill="#333"/><path d="M55 65 Q60 72 65 65" stroke="#333" fill="none" stroke-width="2"/></svg>',
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="30" ry="28" fill="#4ecdc4"/><circle cx="60" cy="55" r="22" fill="#4ecdc4"/><circle cx="42" cy="35" r="10" fill="#4ecdc4"/><circle cx="78" cy="35" r="10" fill="#4ecdc4"/><circle cx="50" cy="50" r="3" fill="#333"/><circle cx="70" cy="50" r="3" fill="#333"/><ellipse cx="60" cy="58" rx="4" ry="3" fill="#333"/><path d="M54 64 Q60 70 66 64" stroke="#333" fill="none" stroke-width="2"/></svg>',
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="32" ry="26" fill="#a855f7"/><circle cx="60" cy="50" r="22" fill="#a855f7"/><ellipse cx="38" cy="32" rx="8" ry="12" fill="#a855f7"/><ellipse cx="82" cy="32" rx="8" ry="12" fill="#a855f7"/><circle cx="50" cy="46" r="3.5" fill="#fff"/><circle cx="50" cy="46" r="2" fill="#333"/><circle cx="70" cy="46" r="3.5" fill="#fff"/><circle cx="70" cy="46" r="2" fill="#333"/><ellipse cx="60" cy="55" rx="3" ry="2" fill="#ff8fab"/><path d="M54 60 Q60 66 66 60" stroke="#333" fill="none" stroke-width="2"/></svg>'
 ];
 
-/* ========== setup ========== */
 function setupLevel(){
-  levelConfigs[currentLevel]=generateLevelConfig(currentLevel);
-  var cfg=levelConfigs[currentLevel];
-  var w=window.innerWidth,h=window.innerHeight,baseSize=120;
+  var cfg=generateLevelConfig(currentLevel);
+  levelConfigs[currentLevel]=cfg;
+  var baseSize=120;
+  var numCards=cfg.numCards;
 
   for(var i=0;i<3;i++){
     var c=cardData[i];
     c.el=document.getElementById('card'+(i+1));
+    if(i>=numCards){c.el.style.display='none';continue}
     c.el.querySelector('img').src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(animals[i])));
     c.scale=cfg.scales[i];
     c.el.style.width=Math.round(baseSize*c.scale)+'px';
     c.targetX=cfg.positions[i].x;
     c.targetY=cfg.positions[i].y;
+    c.targetRot=0;
     c.locked=false;
     c.rotation=0;
     c.el.style.transition='none';
@@ -152,138 +123,61 @@ function setupLevel(){
     c.el.style.display='block';
   }
 
-  levelInfo.textContent='第 '+currentLevel+' 关 — 记住位置！';
+  replayBtn.style.display='block';
   phase='memory';
 
   setTimeout(function(){
     phase='scatter';
-    for(var i=0;i<3;i++){
+    for(var i=0;i<numCards;i++){
       var c=cardData[i];
       var s=cfg.scatter[i];
-      c.rotation=s.r;
+      c.rotation=cfg.scatterRot[i];
       c.el.style.left=s.x+'px';
       c.el.style.top=s.y+'px';
-      c.el.style.transform='rotate('+s.r+'deg) scale('+c.scale+')';
+      c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
     }
-    levelInfo.textContent='第 '+currentLevel+' 关 — 拖到正确位置并转正！';
-    setTimeout(function(){phase='play'},500);
+    phase='play';
   },cfg.memoryTime);
 }
 
-/* ========== hint: outline + pencil scribble ========== */
-function initSketch(){
-  var box=document.querySelector('#hint-overlay .hint-box');
-  var bw=box.offsetWidth,bh=box.offsetHeight;
-  sketchCanvas.width=bw;
-  sketchCanvas.height=bh;
-  sketchCtx.clearRect(0,0,bw,bh);
-
-  // light background
-  sketchCtx.fillStyle='#f0ead6';
-  sketchCtx.fillRect(0,0,bw,bh);
-
-  // draw dashed outlines of correct card positions
-  var cfg=levelConfigs[currentLevel];
-  if(cfg){
-    var sx=bw/window.innerWidth, sy=bh/window.innerHeight;
-    for(var i=0;i<3;i++){
-      var c=cardData[i];
-      if(c.locked)continue;
-      var cx=c.targetX*sx, cy=c.targetY*sy;
-      var cw=120*c.scale*sx, ch=120*c.scale*sy;
-      // dashed rect
-      sketchCtx.strokeStyle='rgba(80,80,80,0.45)';
-      sketchCtx.lineWidth=2;
-      sketchCtx.setLineDash([6,4]);
-      sketchCtx.strokeRect(cx,cy,cw,ch);
-      sketchCtx.setLineDash([]);
-      // number inside
-      sketchCtx.fillStyle='rgba(80,80,80,0.3)';
-      sketchCtx.font='bold '+Math.round(cw*0.35)+'px Arial';
-      sketchCtx.textAlign='center';
-      sketchCtx.textBaseline='middle';
-      sketchCtx.fillText((i+1)+'',cx+cw/2,cy+ch/2);
-    }
-  }
-
-  // cover with pencil scribbles
-  sketchCtx.strokeStyle='rgba(90,90,90,0.88)';
-  sketchCtx.lineWidth=2;
-  for(var i=0;i<250;i++){
-    sketchCtx.beginPath();
-    sketchCtx.moveTo(Math.random()*bw,Math.random()*bh);
-    sketchCtx.lineTo(Math.random()*bw,Math.random()*bh);
-    sketchCtx.stroke();
-  }
-  for(var j=0;j<12;j++){
-    sketchCtx.beginPath();
-    var cx=Math.random()*bw,cy=Math.random()*bh;
-    for(var k=0;k<30;k++){
-      var angle=k*0.5,r=k*2;
-      sketchCtx.lineTo(cx+Math.cos(angle)*r,cy+Math.sin(angle)*r);
-    }
-    sketchCtx.stroke();
-  }
-  for(var m=0;m<60;m++){
-    sketchCtx.beginPath();
-    var sx2=Math.random()*bw,sy2=Math.random()*bh;
-    sketchCtx.moveTo(sx2,sy2);
-    sketchCtx.lineTo(sx2+40+Math.random()*80,sy2+40+Math.random()*80);
-    sketchCtx.stroke();
-  }
-
-  // erase interaction
-  var isErasing=false;
-  function startErase(x,y){isErasing=true;erase(x,y)}
-  function moveErase(x,y){if(isErasing){erase(x,y);playErase()}}
-  function endErase(){isErasing=false}
-  function erase(x,y){
-    sketchCtx.globalCompositeOperation='destination-out';
-    sketchCtx.beginPath();
-    sketchCtx.arc(x,y,22,0,Math.PI*2);
-    sketchCtx.fill();
-    sketchCtx.globalCompositeOperation='source-over';
-  }
-  sketchCanvas.onmousedown=function(e){var r=sketchCanvas.getBoundingClientRect();startErase(e.clientX-r.left,e.clientY-r.top)};
-  sketchCanvas.onmousemove=function(e){var r=sketchCanvas.getBoundingClientRect();moveErase(e.clientX-r.left,e.clientY-r.top)};
-  sketchCanvas.onmouseup=endErase;
-  sketchCanvas.onmouseleave=endErase;
-  sketchCanvas.ontouchstart=function(e){e.preventDefault();var r=sketchCanvas.getBoundingClientRect();var t=e.touches[0];startErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
-  sketchCanvas.ontouchmove=function(e){e.preventDefault();var r=sketchCanvas.getBoundingClientRect();var t=e.touches[0];moveErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
-  sketchCanvas.ontouchend=endErase;
+function normalizeRot(rot){
+  rot=rot%360;
+  if(rot<0)rot+=360;
+  if(rot>180)rot=360-rot;
+  return rot;
 }
 
-/* ========== win check: position AND rotation ========== */
 function checkWin(idx){
+  if(idx<0||idx>=cardData.length)return;
   var c=cardData[idx];
   if(c.locked||phase!=='play')return;
 
-  // rotation must be ~0° (within 5°)
-  var rot=c.rotation%360;
-  if(rot<0)rot+=360;
-  if(rot>180)rot=360-rot;
-  if(rot>=5)return;  // not upright yet
+  var rotDiff=normalizeRot(c.rotation-c.targetRot);
+  if(rotDiff>1)return;
 
-  // position must be close
-  var r=c.el.getBoundingClientRect();
-  var cx=r.left+r.width/2, cy=r.top+r.height/2;
-  var tx=c.targetX+c.el.offsetWidth/2, ty=c.targetY+c.el.offsetHeight/2;
-  var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
-  if(dist>=50)return;
+  if(currentLevel>=2){
+    var r=c.el.getBoundingClientRect();
+    var cx=r.left+r.width/2,cy=r.top+r.height/2;
+    var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
+    var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
+    if(dist>10)return;
 
-  // passed!
+    c.locked=true;
+    c.el.classList.add('locked');
+    c.el.style.transition='all 0.2s ease';
+    c.el.style.left=c.targetX+'px';
+    c.el.style.top=c.targetY+'px';
+    c.el.style.transform='rotate(0deg) scale('+c.scale+')';
+    setTimeout(function(){c.el.style.transition=''},200);
+  }
+
   playClick();
-  c.locked=true;
-  c.el.classList.add('locked');
-  c.el.style.transition='all 0.3s ease';
-  c.el.style.left=c.targetX+'px';
-  c.el.style.top=c.targetY+'px';
-  c.el.style.transform='rotate(0deg) scale('+c.scale+')';
-  setTimeout(function(){c.el.style.transition=''},300);
   playLock();
 
   var allLocked=true;
-  for(var i=0;i<3;i++){if(!cardData[i].locked){allLocked=false;break}}
+  for(var i=0;i<cardData.length;i++){
+    if(cardData[i].el.style.display!=='none'&&!cardData[i].locked){allLocked=false;break}
+  }
   if(allLocked){
     setTimeout(function(){
       playWin();
@@ -291,22 +185,21 @@ function checkWin(idx){
         currentLevel++;
         setupLevel();
       }else{
-        document.getElementById('win-text').textContent='两关全部通过！🎊';
+        document.getElementById('win-text').textContent='全部通关！🎊';
         winScreen.style.display='flex';
       }
-    },500);
+    },300);
   }
 }
 
-/* ========== drag & rotate ========== */
 document.addEventListener('touchstart',function(e){
   if(phase!=='play')return;
   initAudio();
   if(e.touches.length===2){
     var t1=e.touches[0],t2=e.touches[1];
-    for(var i=0;i<3;i++){
+    for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
-      if(c.locked)continue;
+      if(c.locked||c.el.style.display==='none')continue;
       var r=c.el.getBoundingClientRect(),m=30;
       if(t1.clientX>=r.left-m&&t1.clientX<=r.right+m&&t1.clientY>=r.top-m&&t1.clientY<=r.bottom+m){
         rotIdx=i;
@@ -317,9 +210,9 @@ document.addEventListener('touchstart',function(e){
     }
   }else{
     var t=e.touches[0];
-    for(var i=0;i<3;i++){
+    for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
-      if(c.locked)continue;
+      if(c.locked||c.el.style.display==='none')continue;
       var r=c.el.getBoundingClientRect(),m=30;
       if(t.clientX>=r.left-m&&t.clientX<=r.right+m&&t.clientY>=r.top-m&&t.clientY<=r.bottom+m){
         dragIdx=i;dragOx=t.clientX-parseInt(c.el.style.left);dragOy=t.clientY-parseInt(c.el.style.top);
@@ -345,34 +238,27 @@ document.addEventListener('touchmove',function(e){
   }
 },{passive:false});
 
-document.addEventListener('touchend',function(e){
-  dragIdx=-1;
-  if(e.touches.length<2)rotIdx=-1;
-});
+document.addEventListener('touchend',function(e){dragIdx=-1;if(e.touches.length<2)rotIdx=-1});
 
 document.addEventListener('mousedown',function(e){
   if(phase!=='play')return;
   initAudio();
   if(e.shiftKey){
-    for(var i=0;i<3;i++){
+    for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
-      if(c.locked)continue;
+      if(c.locked||c.el.style.display==='none')continue;
       var r=c.el.getBoundingClientRect();
       if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
-        rotIdx=i;
-        rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;
-        rotStartRot=c.rotation;
-        e.preventDefault();break;
+        rotIdx=i;rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;rotStartRot=c.rotation;e.preventDefault();break;
       }
     }
   }else{
-    for(var i=0;i<3;i++){
+    for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
-      if(c.locked)continue;
+      if(c.locked||c.el.style.display==='none')continue;
       var r=c.el.getBoundingClientRect();
       if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
-        dragIdx=i;dragOx=e.clientX-parseInt(c.el.style.left);dragOy=e.clientY-parseInt(c.el.style.top);
-        e.preventDefault();break;
+        dragIdx=i;dragOx=e.clientX-parseInt(c.el.style.left);dragOy=e.clientY-parseInt(c.el.style.top);e.preventDefault();break;
       }
     }
   }
