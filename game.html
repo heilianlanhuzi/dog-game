@@ -349,6 +349,23 @@ function showLevelComplete(){
   }
 }
 
+/* ===== Position snap (only during drag) ===== */
+function trySnap(idx){
+  if(currentLevel!==2)return;
+  var c=cardData[idx];
+  if(c.locked)return;
+  var r=c.el.getBoundingClientRect();
+  var cx=r.left+r.width/2,cy=r.top+r.height/2;
+  var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
+  var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
+  if(dist<=30){
+    c.el.style.transition='all 0.2s ease';
+    c.el.style.left=c.targetX+'px';
+    c.el.style.top=c.targetY+'px';
+    setTimeout(function(){c.el.style.transition=''},200);
+  }
+}
+
 /* ===== Level 1-3: Check win ===== */
 function normalizeRot(rot){
   rot=rot%360;
@@ -362,27 +379,11 @@ function checkWin(idx){
   var c=cardData[idx];
   if(c.locked||phase!=='play')return;
 
-  // 第二关：实时检测位置吸附
-  if(currentLevel===2){
-    var r=c.el.getBoundingClientRect();
-    var cx=r.left+r.width/2,cy=r.top+r.height/2;
-    var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
-    var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
-    if(dist<=30){
-      // 位置到了，吸附过去
-      c.el.style.transition='all 0.2s ease';
-      c.el.style.left=c.targetX+'px';
-      c.el.style.top=c.targetY+'px';
-      c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
-      setTimeout(function(){c.el.style.transition=''},200);
-    }
-  }
-
   // 旋转必须在 ±1° 内
   var rotDiff=normalizeRot(c.rotation-c.targetRot);
   if(rotDiff>1)return;
 
-  // 第二关：旋转正确且位置在吸附范围内才通关
+  // 第二关：旋转正确 + 位置已在吸附范围内
   if(currentLevel===2){
     var r=c.el.getBoundingClientRect();
     var cx=r.left+r.width/2,cy=r.top+r.height/2;
@@ -472,6 +473,7 @@ document.addEventListener('touchmove',function(e){
     var t=e.touches[0],c=cardData[dragIdx];
     c.el.style.left=(t.clientX-dragOx)+'px';
     c.el.style.top=(t.clientY-dragOy)+'px';
+    trySnap(dragIdx);
     checkWin(dragIdx);
   }
 },{passive:false});
@@ -524,6 +526,8 @@ document.addEventListener('mousemove',function(e){
     var c=cardData[dragIdx];
     c.el.style.left=(e.clientX-dragOx)+'px';
     c.el.style.top=(e.clientY-dragOy)+'px';
+    trySnap(dragIdx);
+    checkWin(dragIdx);
   }
 });
 
