@@ -180,20 +180,25 @@ function checkWin(idx){
   var rotDiff=normalizeRot(c.rotation-c.targetRot);
   if(rotDiff>1)return;
 
+  c.locked=true;
+  c.el.classList.add('locked');
+  c.el.style.transition='all 0.2s ease';
+  c.el.style.transform='rotate(0deg) scale('+c.scale+')';
+  setTimeout(function(){c.el.style.transition=''},200);
+
   if(currentLevel>=2){
     var r=c.el.getBoundingClientRect();
     var cx=r.left+r.width/2,cy=r.top+r.height/2;
     var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
     var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
-    if(dist>10)return;
-
-    c.locked=true;
-    c.el.classList.add('locked');
-    c.el.style.transition='all 0.2s ease';
+    if(dist>10){
+      c.locked=false;
+      c.el.classList.remove('locked');
+      return;
+    }
     c.el.style.left=c.targetX+'px';
     c.el.style.top=c.targetY+'px';
     c.el.style.transform='rotate(0deg) scale('+c.scale+')';
-    setTimeout(function(){c.el.style.transition=''},200);
   }
 
   playClick();
