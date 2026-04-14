@@ -374,11 +374,12 @@ function checkWin(idx){
     var cx=r.left+r.width/2,cy=r.top+r.height/2;
     var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
     var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
-    if(dist>10){
+    if(dist>30){
       c.locked=false;
       c.el.classList.remove('locked');
       return;
     }
+    // 30px内自动吸附
     c.el.style.left=c.targetX+'px';
     c.el.style.top=c.targetY+'px';
   }
