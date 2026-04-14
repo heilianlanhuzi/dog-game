@@ -55,7 +55,6 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 <div id="erase-overlay">
   <p>✏️ 擦除涂鸦，还原小动物</p>
   <div id="erase-bar"><div id="erase-fill"></div></div>
-  <button id="erase-close">继续游戏</button>
 </div>
 
 <script>
@@ -95,7 +94,7 @@ document.getElementById('start-btn').addEventListener('click',function(){
 });
 document.getElementById('win-btn').addEventListener('click',function(){winScreen.style.display='none';currentLevel=1;requestAnimationFrame(function(){requestAnimationFrame(setupLevel)})});
 replayBtn.addEventListener('click',function(){requestAnimationFrame(function(){requestAnimationFrame(setupLevel)})});
-document.getElementById('erase-close').addEventListener('click',function(){eraseOverlay.style.display='none'});
+var eraseClose=document.getElementById('erase-close');if(eraseClose)eraseClose.addEventListener('click',function(){eraseOverlay.style.display='none'});
 
 var animals=[
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="35" ry="30" fill="#f5a623"/><circle cx="60" cy="55" r="25" fill="#f5a623"/><polygon points="35,35 28,10 48,30" fill="#f5a623"/><polygon points="85,35 92,10 72,30" fill="#f5a623"/><circle cx="48" cy="50" r="4" fill="#333"/><circle cx="72" cy="50" r="4" fill="#333"/><ellipse cx="60" cy="60" rx="5" ry="3" fill="#333"/><path d="M55 65 Q60 72 65 65" stroke="#333" fill="none" stroke-width="2"/></svg>',
@@ -105,7 +104,7 @@ var animals=[
 
 function generateLevelConfig(level){
   var w=window.innerWidth,h=window.innerHeight,baseSize=120;
-  var cfg={numCards:level<=2?1:3,positions:[],scales:[],scatter:[],scatterRot:[],memoryTime:1500,cardOrder:[0,1,2]};
+  var cfg={numCards:level<=2?1:3,positions:[],scales:[],scatter:[],scatterRot:[],memoryTime:1500};
 
   if(level===1){
     cfg.numCards=1;
@@ -115,9 +114,6 @@ function generateLevelConfig(level){
     cfg.scatterRot.push(20+Math.floor(Math.random()*46));
   }else if(level===2){
     cfg.numCards=3;
-    cfg.cardOrder=[Math.floor(Math.random()*3),0,0];
-    while(cfg.cardOrder[1]===cfg.cardOrder[0])cfg.cardOrder[1]=Math.floor(Math.random()*3);
-    cfg.cardOrder[2]=3-cfg.cardOrder[0]-cfg.cardOrder[1];
     var positions=[
       {x:Math.max(20,(w-baseSize)/3),y:Math.max(60,(h-baseSize)/3)},
       {x:Math.min(w-baseSize-20,w-(w-baseSize)*2/3),y:Math.max(60,(h-baseSize)*2/3)},
@@ -131,24 +127,7 @@ function generateLevelConfig(level){
       cfg.scatterRot.push(Math.floor(Math.random()*360)-180);
     }
   }else if(level===3){
-    cfg.numCards=3;
-    // 排序：按动物索引从小到大
-    cfg.cardOrder=[Math.floor(Math.random()*3),0,0];
-    while(cfg.cardOrder[1]===cfg.cardOrder[0])cfg.cardOrder[1]=Math.floor(Math.random()*3);
-    cfg.cardOrder[2]=3-cfg.cardOrder[0]-cfg.cardOrder[1];
-    var sorted=cfg.cardOrder.slice().sort(function(a,b){return a-b});
-    cfg.cardOrder=sorted;
-    cfg.positions.push({x:(w-baseSize*3-40)/2,y:(h-baseSize)/2});
-    cfg.positions.push({x:(w-baseSize*3-40)/2+baseSize+20,y:(h-baseSize)/2});
-    cfg.positions.push({x:(w-baseSize*3-40)/2+(baseSize+20)*2,y:(h-baseSize)/2});
-    for(var i=0;i<3;i++){
-      cfg.scales.push(0.8+Math.random()*0.2);
-      var cs=baseSize*cfg.scales[i];
-      cfg.scatter.push({x:Math.random()*(w-cs-40)+20,y:Math.random()*(h-cs-40)+20});
-      cfg.scatterRot.push(0);
-    }
-    cfg.memoryTime=2000;
-  }else if(level===4){
+    // 涂色还原
     cfg.numCards=1;
     cfg.positions.push({x:(w-baseSize)/2,y:(h-baseSize)/2});
     cfg.scales.push(1);
@@ -173,7 +152,7 @@ function setupLevel(){
     var c=cardData[i];
     c.el=document.getElementById('card'+(i+1));
     if(i>=numCards){c.el.style.display='none';continue}
-    var animalIdx=level===3?cfg.cardOrder[i]:(i%3);
+    var animalIdx=(i%3);
     c.el.querySelector('img').src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(animals[animalIdx])));
     c.scale=cfg.scales[i];
     c.el.style.width=Math.round(baseSize*c.scale)+'px';
@@ -192,13 +171,13 @@ function setupLevel(){
 
   replayBtn.style.display='block';
 
-  if(level===1){
+  if(currentLevel===1){
     var c=cardData[0];
     c.rotation=20+Math.floor(Math.random()*46);
     c.el.style.transition='none';
     c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
     phase='play';
-  }else if(level<=3){
+  }else if(currentLevel<=2){
     phase='memory';
     setTimeout(function(){
       phase='scatter';
@@ -212,7 +191,7 @@ function setupLevel(){
       }
       phase='play';
     },cfg.memoryTime);
-  }else if(level===4){
+  }else if(currentLevel===3){
     phase='memory';
     setTimeout(function(){
       initErase();
@@ -304,8 +283,8 @@ function initErase(){
 
 function showLevelComplete(){
   playWin();
-  if(currentLevel<4){
-    var txt=['','第 1 关通过！','第 2 关通过！','第 3 关通过！'][currentLevel];
+  if(currentLevel<3){
+    var txt=['','第 1 关通过！','第 2 关通过！'][currentLevel];
     document.getElementById('win-text').textContent=txt;
     winScreen.style.display='flex';
     document.getElementById('win-btn').textContent='下一关';
@@ -348,7 +327,7 @@ function checkWin(idx){
   c.el.style.transform='rotate(0deg) scale('+c.scale+')';
   setTimeout(function(){c.el.style.transition=''},200);
 
-  if(currentLevel>=2){
+  if(currentLevel===2){
     var r=c.el.getBoundingClientRect();
     var cx=r.left+r.width/2,cy=r.top+r.height/2;
     var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
