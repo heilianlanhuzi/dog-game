@@ -23,10 +23,8 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 #win-btn{padding:12px 30px;font-size:20px;border:none;border-radius:8px;background:#4caf50;color:#fff;cursor:pointer}
 #erase-canvas{position:absolute;top:0;left:0;z-index:3;cursor:crosshair;border-radius:10px;pointer-events:none}
 #erase-canvas.active{pointer-events:auto}
-#erase-overlay{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);padding:12px 24px;border-radius:20px;display:none;justify-content:center;align-items:center;flex-direction:column;z-index:8}
-#erase-overlay p{color:#fff;margin-bottom:8px;font-size:16px;white-space:nowrap}
-#erase-bar{width:200px;height:14px;background:#555;border-radius:10px;overflow:hidden}
-#erase-fill{height:100%;background:#4caf50;width:0%;transition:width 0.2s}
+#erase-overlay{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);padding:10px 20px;border-radius:20px;display:none;justify-content:center;align-items:center;z-index:8}
+#erase-overlay p{color:#fff;margin:0;font-size:14px;white-space:nowrap}
 #erase-close{margin-top:15px;padding:10px 25px;border:none;border-radius:20px;background:#f44336;color:#fff;font-size:18px;cursor:pointer}
 </style>
 </head>
@@ -41,7 +39,13 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
   <div class="card" id="card1" style="display:none"><img alt=""></div>
   <div class="card" id="card2" style="display:none"><img alt=""></div>
   <div class="card" id="card3" style="display:none"><img alt=""></div>
+  <div class="card" id="card4" style="display:none"><img alt=""></div>
   <canvas id="erase-canvas" style="display:none"></canvas>
+</div>
+
+<div id="target-display" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:20px;padding:30px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.4);z-index:8;flex-direction:column;align-items:center">
+  <p style="font-size:18px;color:#666;margin-bottom:15px">记住它！擦除找到它</p>
+  <img id="target-img" style="width:150px;height:150px;border-radius:10px" alt="">
 </div>
 
 <button id="replay-btn">🔄</button>
@@ -53,8 +57,7 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 </div>
 
 <div id="erase-overlay">
-  <p>✏️ 擦除涂鸦，还原小动物</p>
-  <div id="erase-bar"><div id="erase-fill"></div></div>
+  <p>✏️ 擦除找到记住的小动物</p>
 </div>
 
 <script>
@@ -66,6 +69,7 @@ function playWin(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523
 function playErase(){if(!soundOn||!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sawtooth';o.frequency.value=200+Math.random()*100;g.gain.setValueAtTime(0.02,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.03);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.03)}
 
 var cardData=[
+  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1,targetRot:0},
   {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1,targetRot:0},
   {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1,targetRot:0},
   {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1,targetRot:0}
@@ -83,7 +87,6 @@ var replayBtn=document.getElementById('replay-btn');
 var eraseCanvas=document.getElementById('erase-canvas');
 var eraseCtx=eraseCanvas.getContext('2d');
 var eraseOverlay=document.getElementById('erase-overlay');
-var eraseFill=document.getElementById('erase-fill');
 
 document.getElementById('start-btn').addEventListener('click',function(){
   initAudio();
@@ -128,13 +131,29 @@ function generateLevelConfig(level){
     }
     cfg.memoryTime=3000;
   }else if(level===3){
-    // 涂色还原 - 2张卡片
-    cfg.numCards=2;
-    cfg.positions.push({x:(w-baseSize)/2-80,y:(h-baseSize)/2});
-    cfg.positions.push({x:(w-baseSize)/2+80,y:(h-baseSize)/2});
-    cfg.scales.push(1,1);
-    cfg.scatter.push({x:(w-baseSize)/2-80,y:(h-baseSize)/2},{x:(w-baseSize)/2+80,y:(h-baseSize)/2});
-    cfg.scatterRot.push(0,0);
+    // 记忆配对+擦除 - 4张卡片
+    cfg.numCards=4;
+    var targetAnimal=Math.floor(Math.random()*3);
+    cfg.targetAnimal=targetAnimal;
+    var others=[];
+    for(var i=0;i<3;i++){if(i!==targetAnimal)others.push(i)}
+    var cardAnimals=[targetAnimal];
+    while(cardAnimals.length<4){
+      var r=others[Math.floor(Math.random()*others.length)];
+      cardAnimals.push(r);
+    }
+    cfg.cardAnimals=cardAnimals;
+    // 2x2 grid
+    var gx=(w-baseSize*2-60)/2,gy=(h-baseSize*2-60)/2;
+    cfg.positions.push({x:gx,y:gy});
+    cfg.positions.push({x:gx+baseSize+20,y:gy});
+    cfg.positions.push({x:gx,y:gy+baseSize+20});
+    cfg.positions.push({x:gx+baseSize+20,y:gy+baseSize+20});
+    for(var i=0;i<4;i++){
+      cfg.scales.push(1);
+      cfg.scatter.push({x:cfg.positions[i].x,y:cfg.positions[i].y});
+      cfg.scatterRot.push(0);
+    }
     cfg.memoryTime=2000;
   }
   return cfg;
@@ -144,17 +163,21 @@ function setupLevel(){
   eraseCanvas.style.display='none';
   eraseCanvas.classList.remove('active');
   eraseOverlay.style.display='none';
+  document.getElementById('target-display').style.display='none';
 
   var cfg=generateLevelConfig(currentLevel);
   levelConfigs[currentLevel]=cfg;
   var baseSize=120;
   var numCards=cfg.numCards;
 
-  for(var i=0;i<3;i++){
+  for(var i=0;i<4;i++){
     var c=cardData[i];
     c.el=document.getElementById('card'+(i+1));
     if(i>=numCards){c.el.style.display='none';continue}
     var animalIdx=(i%3);
+    if(currentLevel===3&&cfg.cardAnimals){
+      animalIdx=cfg.cardAnimals[i];
+    }
     c.el.querySelector('img').src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(animals[animalIdx])));
     c.scale=cfg.scales[i];
     c.el.style.width=Math.round(baseSize*c.scale)+'px';
@@ -179,7 +202,7 @@ function setupLevel(){
     c.el.style.transition='none';
     c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
     phase='play';
-  }else if(currentLevel<=2){
+  }else if(currentLevel===2){
     phase='memory';
     setTimeout(function(){
       phase='scatter';
@@ -194,114 +217,111 @@ function setupLevel(){
       phase='play';
     },cfg.memoryTime);
   }else if(currentLevel===3){
-    phase='memory';
+    // Show target animal
+    var targetIdx=cfg.targetAnimal;
+    document.getElementById('target-img').src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(animals[targetIdx])));
+    document.getElementById('target-display').style.display='flex';
     setTimeout(function(){
-      phase='play';
-      initErase();
+      document.getElementById('target-display').style.display='none';
+      // Cover all cards with erase canvas
+      initEraseAll();
     },cfg.memoryTime);
   }
 }
 
-/* ===== Level 3: Erase overlay ===== */
-var eraseCardIdx=0;
-function initErase(){
-  eraseCardIdx=0;
-  startEraseCard(0);
-}
+/* ===== Level 3: Erase all cards to find target ===== */
+var eraseCanvases=[];
+var eraseCardState=[]; // {erasing:false, erased:false}
+var targetAnimalIdx=0;
 
-function startEraseCard(idx){
-  eraseCardIdx=idx;
-  var c=cardData[idx];
-  var cw=c.el.offsetWidth,ch=c.el.offsetHeight;
-  eraseCanvas.style.width=cw+'px';
-  eraseCanvas.style.height=ch+'px';
-  eraseCanvas.width=cw;
-  eraseCanvas.height=ch;
-  eraseCanvas.style.left=c.el.style.left;
-  eraseCanvas.style.top=c.el.style.top;
-  eraseCanvas.style.display='block';
-  eraseCanvas.classList.add('active');
+function initEraseAll(){
+  var cfg=levelConfigs[currentLevel];
+  targetAnimalIdx=cfg.targetAnimal;
+  eraseCanvases=[];
+  eraseCardState=[];
 
-  // Draw scribbles
-  eraseCtx.fillStyle='rgba(120,120,120,0.95)';
-  eraseCtx.fillRect(0,0,cw,ch);
-  eraseCtx.strokeStyle='rgba(90,90,90,0.8)';
-  eraseCtx.lineWidth=2;
-  for(var i=0;i<200;i++){
-    eraseCtx.beginPath();
-    eraseCtx.moveTo(Math.random()*cw,Math.random()*ch);
-    eraseCtx.lineTo(Math.random()*cw,Math.random()*ch);
-    eraseCtx.stroke();
-  }
-  for(var j=0;j<10;j++){
-    eraseCtx.beginPath();
-    var cx=Math.random()*cw,cy=Math.random()*ch;
-    for(var k=0;k<20;k++){
-      var angle=k*0.5,r=k*2;
-      eraseCtx.lineTo(cx+Math.cos(angle)*r,cy+Math.sin(angle)*r);
+  for(var i=0;i<4;i++){
+    var c=cardData[i];
+    var canvas=document.createElement('canvas');
+    canvas.width=c.el.offsetWidth;
+    canvas.height=c.el.offsetHeight;
+    canvas.style.width=c.el.offsetWidth+'px';
+    canvas.style.height=c.el.offsetHeight+'px';
+    canvas.style.position='absolute';
+    canvas.style.left=c.el.style.left;
+    canvas.style.top=c.el.style.top;
+    canvas.style.zIndex='3';
+    canvas.style.cursor='crosshair';
+    canvas.style.borderRadius='10px';
+    canvas.style.display='block';
+    gameArea.appendChild(canvas);
+    eraseCanvases.push(canvas);
+    eraseCardState.push({erasing:false,erased:false,done:false});
+
+    // Draw scribbles
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='rgba(120,120,120,0.95)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='rgba(90,90,90,0.8)';
+    ctx.lineWidth=2;
+    for(var j=0;j<150;j++){
+      ctx.beginPath();
+      ctx.moveTo(Math.random()*canvas.width,Math.random()*canvas.height);
+      ctx.lineTo(Math.random()*canvas.width,Math.random()*canvas.height);
+      ctx.stroke();
     }
-    eraseCtx.stroke();
-  }
 
-  eraseOverlay.style.display='flex';
-  eraseFill.style.width='0%';
+    (function(idx,ctx){
+      function startErase(x,y){eraseCardState[idx].erasing=true;eraseFn(x,y)}
+      function moveErase(x,y){if(eraseCardState[idx].erasing)eraseFn(x,y)}
+      function endErase(){eraseCardState[idx].erasing=false}
+      function eraseFn(x,y){
+        if(eraseCardState[idx].done)return;
+        ctx.globalCompositeOperation='destination-out';
+        ctx.beginPath();
+        ctx.arc(x,y,20,0,Math.PI*2);
+        ctx.fill();
+        ctx.globalCompositeOperation='source-over';
+        playErase();
 
-  // Erase interaction
-  var isErasing=false;
-  var totalPixels=cw*ch;
+        var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+        var transparent=0;
+        var total=imageData.width*imageData.height;
+        for(var p=3;p<imageData.data.length;p+=4){
+          if(imageData.data[p]<128)transparent++;
+        }
+        var pct=Math.round(transparent/total*100);
 
-  function startErase(x,y){isErasing=true;erase(x,y)}
-  function moveErase(x,y){if(isErasing)erase(x,y)}
-  function endErase(){isErasing=false}
+        if(pct>=65){
+          eraseCardState[idx].done=true;
+          canvas.style.display='none';
 
-  function erase(x,y){
-    eraseCtx.globalCompositeOperation='destination-out';
-    eraseCtx.beginPath();
-    eraseCtx.arc(x,y,25,0,Math.PI*2);
-    eraseCtx.fill();
-    eraseCtx.globalCompositeOperation='source-over';
-    playErase();
-
-    var imageData=eraseCtx.getImageData(0,0,cw,ch);
-    var transparent=0;
-    for(var i=3;i<imageData.data.length;i+=4){
-      if(imageData.data[i]<128)transparent++;
-    }
-    var pct=Math.round(transparent/totalPixels*100);
-    eraseFill.style.width=pct+'%';
-
-    if(pct>=70){
-      // Move to next card or complete
-      if(idx<1){
-        eraseCanvas.classList.remove('active');
-        eraseCanvas.style.display='none';
-        playClick();playLock();
-        c.locked=true;
-        setTimeout(function(){startEraseCard(1)},300);
-      }else{
-        eraseCanvas.classList.remove('active');
-        eraseCanvas.style.display='none';
-        eraseOverlay.style.display='none';
-        playClick();playLock();
-        showLevelComplete();
+          if(idx<3&&cfg.cardAnimals[idx]===targetAnimalIdx){
+            // Correct!
+            playClick();playLock();playWin();
+            showLevelComplete();
+          }else if(idx<3){
+            // Wrong card
+            playClick();
+            // Mark card as wrong (shake)
+            var cardEl=cardData[idx].el;
+            cardEl.style.transition='all 0.2s';
+            cardEl.style.opacity='0.3';
+          }
+        }
       }
-    }
+      canvas.onmousedown=function(e){e.stopPropagation();e.preventDefault();var r=canvas.getBoundingClientRect();startErase(e.clientX-r.left,e.clientY-r.top)};
+      canvas.onmousemove=function(e){e.stopPropagation();e.preventDefault();var r=canvas.getBoundingClientRect();moveErase(e.clientX-r.left,e.clientY-r.top)};
+      canvas.onmouseup=endErase;
+      canvas.onmouseleave=endErase;
+      canvas.ontouchstart=function(e){e.stopPropagation();e.preventDefault();var r=canvas.getBoundingClientRect();var t=e.touches[0];startErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
+      canvas.ontouchmove=function(e){e.stopPropagation();e.preventDefault();var r=canvas.getBoundingClientRect();var t=e.touches[0];moveErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
+      canvas.ontouchend=endErase;
+    })(i,ctx);
   }
 
-  eraseCanvas.onmousedown=function(e){
-    e.stopPropagation();e.preventDefault();
-    console.log('canvas mousedown',e.clientX,e.clientY);
-    var r=eraseCanvas.getBoundingClientRect();startErase(e.clientX-r.left,e.clientY-r.top);
-  };
-  eraseCanvas.onmousemove=function(e){
-    e.stopPropagation();e.preventDefault();
-    var r=eraseCanvas.getBoundingClientRect();moveErase(e.clientX-r.left,e.clientY-r.top);
-  };
-  eraseCanvas.onmouseup=function(e){e.stopPropagation();endErase()};
-  eraseCanvas.onmouseleave=function(e){e.stopPropagation();endErase()};
-  eraseCanvas.ontouchstart=function(e){e.stopPropagation();e.preventDefault();var r=eraseCanvas.getBoundingClientRect();var t=e.touches[0];startErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
-  eraseCanvas.ontouchmove=function(e){e.stopPropagation();e.preventDefault();var r=eraseCanvas.getBoundingClientRect();var t=e.touches[0];moveErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
-  eraseCanvas.ontouchend=function(e){e.stopPropagation();endErase()};
+  phase='play';
+  eraseOverlay.style.display='flex';
 }
 
 function showLevelComplete(){
