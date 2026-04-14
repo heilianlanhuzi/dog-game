@@ -140,11 +140,12 @@ function setupLevel(){
 
   if(currentLevel===1){
     var c=cardData[0];
-    c.rotation=20+Math.floor(Math.random()*46);
+    c.rotation=45;
     c.el.style.transition='none';
-    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
+    c.el.style.transform='rotate(45deg) scale('+c.scale+')';
+    c.el.style.transformOrigin='center center';
     document.getElementById('debug-info').style.display='block';
-    document.getElementById('debug-info').textContent='rot:'+c.rotation+'° target:0°';
+    document.getElementById('debug-info').textContent='rot:45° target:0°';
     phase='play';
   }else{
     phase='memory';
