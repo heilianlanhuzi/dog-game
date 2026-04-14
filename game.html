@@ -73,7 +73,9 @@ function generateLevelConfig(level){
     cfg.positions.push({x:(w-baseSize)/2,y:(h-baseSize)/2});
     cfg.scales.push(1);
     cfg.scatter.push({x:(w-baseSize)/2,y:(h-baseSize)/2});
-    cfg.scatterRot.push(90+Math.floor(Math.random()*3)*90);
+    var rots=[90,180,270];
+    var ri=Math.floor(Math.random()*rots.length);
+    cfg.scatterRot.push(rots[ri]);
   }else{
     var positions=[
       {x:Math.max(20,(w-baseSize)/3),y:Math.max(60,(h-baseSize)/3)},
@@ -124,20 +126,29 @@ function setupLevel(){
   }
 
   replayBtn.style.display='block';
-  phase='memory';
 
-  setTimeout(function(){
-    phase='scatter';
-    for(var i=0;i<numCards;i++){
-      var c=cardData[i];
-      var s=cfg.scatter[i];
-      c.rotation=cfg.scatterRot[i];
-      c.el.style.left=s.x+'px';
-      c.el.style.top=s.y+'px';
-      c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
-    }
+  if(currentLevel===1){
+    var rots=[90,180,270];
+    var c=cardData[0];
+    c.rotation=rots[Math.floor(Math.random()*rots.length)];
+    c.el.style.transition='none';
+    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
     phase='play';
-  },cfg.memoryTime);
+  }else{
+    phase='memory';
+    setTimeout(function(){
+      phase='scatter';
+      for(var i=0;i<numCards;i++){
+        var c=cardData[i];
+        var s=cfg.scatter[i];
+        c.rotation=cfg.scatterRot[i];
+        c.el.style.left=s.x+'px';
+        c.el.style.top=s.y+'px';
+        c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
+      }
+      phase='play';
+    },cfg.memoryTime);
+  }
 }
 
 function normalizeRot(rot){
