@@ -274,8 +274,8 @@ function initErase(){
     }
   }
 
-  eraseCanvas.onmousedown=function(e){var r=eraseCanvas.getBoundingClientRect();startErase(e.clientX-r.left,e.clientY-r.top)};
-  eraseCanvas.onmousemove=function(e){var r=eraseCanvas.getBoundingClientRect();moveErase(e.clientX-r.left,e.clientY-r.top)};
+  eraseCanvas.onmousedown=function(e){e.stopPropagation();var r=eraseCanvas.getBoundingClientRect();startErase(e.clientX-r.left,e.clientY-r.top)};
+  eraseCanvas.onmousemove=function(e){e.stopPropagation();var r=eraseCanvas.getBoundingClientRect();moveErase(e.clientX-r.left,e.clientY-r.top)};
   eraseCanvas.onmouseup=endErase;
   eraseCanvas.onmouseleave=endErase;
   eraseCanvas.ontouchstart=function(e){e.preventDefault();var r=eraseCanvas.getBoundingClientRect();var t=e.touches[0];startErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
