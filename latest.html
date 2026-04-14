@@ -123,9 +123,11 @@ function generateLevelConfig(level){
       cfg.positions.push(positions[i]);
       cfg.scales.push(0.75+Math.random()*0.25);
       var cs=baseSize*cfg.scales[i];
-      cfg.scatter.push({x:Math.random()*(w-cs-40)+20,y:Math.random()*(h-cs-40)+20});
+      // 打散时位置不动，只旋转
+      cfg.scatter.push({x:positions[i].x,y:positions[i].y});
       cfg.scatterRot.push(Math.floor(Math.random()*360)-180);
     }
+    cfg.memoryTime=3000;
   }else if(level===3){
     // 涂色还原
     cfg.numCards=1;
@@ -316,10 +318,8 @@ function checkWin(idx){
   var c=cardData[idx];
   if(c.locked||phase!=='play')return;
 
-  if(currentLevel<=2){
-    var rotDiff=normalizeRot(c.rotation-c.targetRot);
-    if(rotDiff>1)return;
-  }
+  var rotDiff=normalizeRot(c.rotation-c.targetRot);
+  if(rotDiff>1)return;
 
   c.locked=true;
   c.el.classList.add('locked');
@@ -327,7 +327,8 @@ function checkWin(idx){
   c.el.style.transform='rotate(0deg) scale('+c.scale+')';
   setTimeout(function(){c.el.style.transition=''},200);
 
-  if(currentLevel===2){
+  // 第三关：检查位置
+  if(currentLevel===3){
     var r=c.el.getBoundingClientRect();
     var cx=r.left+r.width/2,cy=r.top+r.height/2;
     var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
@@ -339,7 +340,6 @@ function checkWin(idx){
     }
     c.el.style.left=c.targetX+'px';
     c.el.style.top=c.targetY+'px';
-    c.el.style.transform='rotate(0deg) scale('+c.scale+')';
   }
 
   playClick();
@@ -360,32 +360,43 @@ function checkWin(idx){
 document.addEventListener('touchstart',function(e){
   if(phase!=='play')return;
   initAudio();
-  if(e.touches.length===2){
-    // 双指旋转
-    var t1=e.touches[0],t2=e.touches[1];
-    for(var i=0;i<cardData.length;i++){
-      var c=cardData[i];
-      if(c.locked||c.el.style.display==='none')continue;
-      var r=c.el.getBoundingClientRect(),m=30;
-      if(t1.clientX>=r.left-m&&t1.clientX<=r.right+m&&t1.clientY>=r.top-m&&t1.clientY<=r.bottom+m){
-        rotIdx=i;
-        rotStartRot=c.rotation;
-        rotStartAngle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
-        break;
-      }
-    }
-  }else if(e.touches.length===1){
-    // 单指拖拽
+  if(currentLevel===3){
+    // 第三关：单指拖拽
     var t=e.touches[0];
     for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
       if(c.locked||c.el.style.display==='none')continue;
       var r=c.el.getBoundingClientRect(),m=30;
       if(t.clientX>=r.left-m&&t.clientX<=r.right+m&&t.clientY>=r.top-m&&t.clientY<=r.bottom+m){
-        dragIdx=i;
-        dragOx=t.clientX-parseInt(c.el.style.left);
-        dragOy=t.clientY-parseInt(c.el.style.top);
+        dragIdx=i;dragOx=t.clientX-parseInt(c.el.style.left);dragOy=t.clientY-parseInt(c.el.style.top);
         break;
+      }
+    }
+  }else{
+    // 第一关&第二关：单指/双指旋转
+    if(e.touches.length===2){
+      var t1=e.touches[0],t2=e.touches[1];
+      for(var i=0;i<cardData.length;i++){
+        var c=cardData[i];
+        if(c.locked||c.el.style.display==='none')continue;
+        var r=c.el.getBoundingClientRect(),m=30;
+        if(t1.clientX>=r.left-m&&t1.clientX<=r.right+m&&t1.clientY>=r.top-m&&t1.clientY<=r.bottom+m){
+          rotIdx=i;rotStartRot=c.rotation;
+          rotStartAngle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
+          break;
+        }
+      }
+    }else if(e.touches.length===1){
+      var t=e.touches[0];
+      for(var i=0;i<cardData.length;i++){
+        var c=cardData[i];
+        if(c.locked||c.el.style.display==='none')continue;
+        var r=c.el.getBoundingClientRect(),m=30;
+        if(t.clientX>=r.left-m&&t.clientX<=r.right+m&&t.clientY>=r.top-m&&t.clientY<=r.bottom+m){
+          rotIdx=i;rotStartRot=c.rotation;
+          rotStartAngle=Math.atan2(t.clientY,t.clientX)*180/Math.PI;
+          break;
+        }
       }
     }
   }
@@ -394,29 +405,27 @@ document.addEventListener('touchstart',function(e){
 document.addEventListener('touchmove',function(e){
   if(phase!=='play')return;
   e.preventDefault();
-  if(rotIdx>=0&&e.touches.length===2){
-    var t1=e.touches[0],t2=e.touches[1],c=cardData[rotIdx];
-    var angle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
-    c.rotation=rotStartRot+(angle-rotStartAngle);
-    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
-    checkWin(rotIdx);
-  }else if(dragIdx>=0&&e.touches.length===1){
+  if(currentLevel===3&&dragIdx>=0&&e.touches.length===1){
     var t=e.touches[0],c=cardData[dragIdx];
     c.el.style.left=(t.clientX-dragOx)+'px';
     c.el.style.top=(t.clientY-dragOy)+'px';
+    checkWin(dragIdx);
+  }else if(rotIdx>=0&&e.touches.length>=1){
+    var t=e.touches[0],c=cardData[rotIdx];
+    var angle=Math.atan2(t.clientY,t.clientX)*180/Math.PI;
+    c.rotation=rotStartRot+(angle-rotStartAngle);
+    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
+    checkWin(rotIdx);
   }
 },{passive:false});
 
-document.addEventListener('touchend',function(){
-  dragIdx=-1;
-  if(event.touches.length<2)rotIdx=-1;
-});
+document.addEventListener('touchend',function(){dragIdx=-1;rotIdx=-1});
 
 document.addEventListener('mousedown',function(e){
   if(phase!=='play')return;
   initAudio();
-  if(!e.shiftKey){
-    // 单指拖拽
+  if(currentLevel===3){
+    // 第三关：拖拽
     for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
       if(c.locked||c.el.style.display==='none')continue;
@@ -427,14 +436,26 @@ document.addEventListener('mousedown',function(e){
       }
     }
   }else{
-    // Shift+鼠标=旋转
-    for(var i=0;i<cardData.length;i++){
-      var c=cardData[i];
-      if(c.locked||c.el.style.display==='none')continue;
-      var r=c.el.getBoundingClientRect();
-      if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
-        rotIdx=i;rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;rotStartRot=c.rotation;
-        e.preventDefault();break;
+    // 第一关&第二关：旋转
+    if(e.shiftKey){
+      for(var i=0;i<cardData.length;i++){
+        var c=cardData[i];
+        if(c.locked||c.el.style.display==='none')continue;
+        var r=c.el.getBoundingClientRect();
+        if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
+          rotIdx=i;rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;rotStartRot=c.rotation;
+          e.preventDefault();break;
+        }
+      }
+    }else{
+      for(var i=0;i<cardData.length;i++){
+        var c=cardData[i];
+        if(c.locked||c.el.style.display==='none')continue;
+        var r=c.el.getBoundingClientRect();
+        if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
+          rotIdx=i;rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;rotStartRot=c.rotation;
+          e.preventDefault();break;
+        }
       }
     }
   }
@@ -442,16 +463,17 @@ document.addEventListener('mousedown',function(e){
 
 document.addEventListener('mousemove',function(e){
   if(phase!=='play')return;
-  if(rotIdx>=0){
+  if(currentLevel===3&&dragIdx>=0){
+    var c=cardData[dragIdx];
+    c.el.style.left=(e.clientX-dragOx)+'px';
+    c.el.style.top=(e.clientY-dragOy)+'px';
+    checkWin(dragIdx);
+  }else if(rotIdx>=0){
     var c=cardData[rotIdx];
     var angle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;
     c.rotation=rotStartRot+(angle-rotStartAngle);
     c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
     checkWin(rotIdx);
-  }else if(dragIdx>=0){
-    var c=cardData[dragIdx];
-    c.el.style.left=(e.clientX-dragOx)+'px';
-    c.el.style.top=(e.clientY-dragOy)+'px';
   }
 });
 
