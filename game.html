@@ -212,8 +212,15 @@ function checkWin(idx){
     setTimeout(function(){
       playWin();
       if(currentLevel<2){
-        currentLevel++;
-        setupLevel();
+        document.getElementById('win-text').textContent='第 '+currentLevel+' 关通关！🎉';
+        winScreen.style.display='flex';
+        var savedLevel=currentLevel;
+        document.getElementById('win-btn').onclick=function(){
+          winScreen.style.display='none';
+          currentLevel=savedLevel+1;
+          document.getElementById('win-btn').onclick=function(){winScreen.style.display='none';currentLevel=1;requestAnimationFrame(function(){requestAnimationFrame(setupLevel)})};
+          setupLevel();
+        };
       }else{
         document.getElementById('win-text').textContent='全部通关！🎊';
         winScreen.style.display='flex';
