@@ -3,197 +3,397 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>整理小狗</title>
+<title>整理小动物</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    overflow: hidden;
-    background: #6b8f4a;
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-#card {
-    position: absolute;
-    width: 50vw;
-    max-width: 500px;
-    min-width: 200px;
-    cursor: move;
-}
-#card img {
-    width: 100%;
-    height: auto;
-    display: block;
-    pointer-events: none;
-    -webkit-user-drag: none;
-}
-#win {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 40px 60px;
-    border-radius: 20px;
-    text-align: center;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    z-index: 100;
-}
-#win h2 { color: #4CAF50; margin: 0 0 10px 0; font-size: 28px; }
-#win p { color: #666; margin: 0 0 20px 0; }
-#win button {
-    padding: 12px 30px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    cursor: pointer;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:none;user-select:none;font-family:Arial,sans-serif}
+.card{position:absolute;width:120px;height:120px;cursor:grab;transition:box-shadow 0.3s;border-radius:10px}
+.card img{width:100%;height:100%;border-radius:10px;pointer-events:none;-webkit-user-drag:none;user-select:none}
+.card.locked{cursor:default;box-shadow:0 0 20px 5px rgba(255,215,0,0.6);border:3px solid gold}
+#start-screen{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;flex-direction:column;z-index:10}
+#start-btn{padding:15px 40px;font-size:24px;border:none;border-radius:30px;background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
+#game-area{display:none;position:relative;width:100vw;height:100vh}
+#level-info{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:#fff;padding:8px 20px;border-radius:20px;font-size:16px;z-index:5;white-space:nowrap}
+#win-screen{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:10}
+#win-screen h1{font-size:36px;color:#ffd700;margin-bottom:20px;text-shadow:0 0 10px rgba(255,215,0,0.5)}
+#replay-btn{padding:12px 30px;font-size:20px;border:none;border-radius:20px;background:#4caf50;color:#fff;cursor:pointer;margin:5px}
+#sound-btn{position:fixed;bottom:10px;right:10px;font-size:24px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;z-index:5}
+#hint-btn{position:fixed;bottom:10px;left:10px;font-size:20px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;z-index:5}
+#hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);display:none;justify-content:center;align-items:center;z-index:8}
+.hint-box{position:relative;width:360px;height:360px;background:#f5f5e8;border-radius:12px;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,0.5)}
+#hint-close{position:absolute;top:8px;right:12px;font-size:24px;cursor:pointer;color:#555;z-index:9}
+#hint-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:#888;font-size:12px;z-index:9}
+#sketch-canvas{position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair}
 </style>
 </head>
 <body>
-<div id="card">
-    <img src="dog.png" alt="小狗">
+
+<div id="start-screen">
+  <h1 style="color:#fff;margin-bottom:20px">🐱 整理小动物 🐶</h1>
+  <button id="start-btn">开始游戏</button>
 </div>
-<div id="win">
-    <h2>🎉 整理成功！</h2>
-    <p>小狗已经摆正啦～</p>
-    <button onclick="location.reload()">再玩一次</button>
+
+<div id="game-area">
+  <div class="card" id="card1"><img alt=""></div>
+  <div class="card" id="card2"><img alt=""></div>
+  <div class="card" id="card3"><img alt=""></div>
 </div>
+
+<div id="level-info"></div>
+
+<div id="win-screen">
+  <h1>🎉 太棒了！</h1>
+  <p id="win-text" style="color:#fff;margin-bottom:15px;font-size:18px"></p>
+  <button id="replay-btn">再玩一次</button>
+</div>
+
+<button id="sound-btn">🔊</button>
+<button id="hint-btn">💡</button>
+
+<div id="hint-overlay">
+  <div class="hint-box">
+    <canvas id="sketch-canvas"></canvas>
+    <div id="hint-close">✖</div>
+    <div id="hint-label">✏️ 擦除铅笔线条，查看正确位置轮廓</div>
+  </div>
+</div>
+
 <script>
-var card = document.getElementById('card');
-var win = document.getElementById('win');
-var rotation = 0;
-// === 状态 ===
-var dragging = false, dragOx, dragOy;
-var rotating = false, rotStartAngle, rotStartRot;
-var touches = {};
-function setup() {
-    var w = window.innerWidth, h = window.innerHeight;
-    var cw = card.offsetWidth || 250, ch = card.offsetHeight || 250;
-    var cx = (w - cw) / 2, cy = (h - ch) / 2;
-    if (cx < 0) cx = 0;
-    if (cy < 0) cy = 0;
-    card.style.left = cx + 'px';
-    card.style.top = cy + 'px';
-    rotation = Math.floor(Math.random() * 60) - 30;
-    updateRotation();
-}
-function updateRotation() {
-    card.style.transform = 'rotate(' + rotation + 'deg)';
-}
-// === 触屏 ===
-document.addEventListener('touchstart', function(e) {
-    if (win.style.display === 'block') return;
-    for (var i = 0; i < e.changedTouches.length; i++) {
-        var t = e.changedTouches[i];
-        touches[t.identifier] = { x: t.clientX, y: t.clientY };
-    }
-    var ids = Object.keys(touches);
-    if (ids.length === 1) {
-        dragging = true;
-        var t = touches[ids[0]];
-        dragOx = t.x - card.offsetLeft;
-        dragOy = t.y - card.offsetTop;
-    }
-    if (ids.length === 2) {
-        dragging = false;
-        rotating = true;
-        var t1 = touches[ids[0]], t2 = touches[ids[1]];
-        rotStartAngle = Math.atan2(t2.y - t1.y, t2.x - t1.x) * 180 / Math.PI;
-        rotStartRot = rotation;
-    }
-}, { passive: false });
-document.addEventListener('touchmove', function(e) {
-    if (win.style.display === 'block') return;
-    e.preventDefault();
-    for (var i = 0; i < e.changedTouches.length; i++) {
-        var t = e.changedTouches[i];
-        touches[t.identifier] = { x: t.clientX, y: t.clientY };
-    }
-    var ids = Object.keys(touches);
-    if (ids.length === 2 && rotating) {
-        var t1 = touches[ids[0]], t2 = touches[ids[1]];
-        var angle = Math.atan2(t2.y - t1.y, t2.x - t1.x) * 180 / Math.PI;
-        rotation = rotStartRot + (angle - rotStartAngle);
-        updateRotation();
-        checkWin();
-    } else if (ids.length === 1 && dragging) {
-        var t = touches[ids[0]];
-        card.style.left = (t.x - dragOx) + 'px';
-        card.style.top = (t.y - dragOy) + 'px';
-    }
-}, { passive: false });
-document.addEventListener('touchend', function(e) {
-    for (var i = 0; i < e.changedTouches.length; i++) {
-        delete touches[e.changedTouches[i].identifier];
-    }
-    if (Object.keys(touches).length < 2) rotating = false;
-    if (Object.keys(touches).length < 1) dragging = false;
-});
-// === 鼠标 ===
-card.addEventListener('mousedown', function(e) {
-if (win.style.display === 'block') return;
-if (e.shiftKey) {
-e.preventDefault();
-rotating = true;
-var r = card.getBoundingClientRect();
-var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-rotStartAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
-rotStartRot = rotation;
-} else {
-e.preventDefault();
-dragging = true;
-dragOx = e.clientX - card.offsetLeft;
-dragOy = e.clientY - card.offsetTop;
-}
-});
+var audioCtx=null,soundOn=true;
+function initAudio(){if(!audioCtx){audioCtx=new(window.AudioContext||window.webkitAudioContext)()}}
+function playClick(){if(!soundOn||!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=800+Math.random()*400;g.gain.setValueAtTime(0.08,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.05);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.05)}
+function playLock(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523,659,784].forEach(function(f,i){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*0.1);g.gain.linearRampToValueAtTime(0.12,t+i*0.1+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.1+0.3);o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.1);o.stop(t+i*0.1+0.3)})}
+function playWin(){if(!soundOn||!audioCtx)return;var t=audioCtx.currentTime;[523,659,784,1047].forEach(function(f,i){var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*0.15);g.gain.linearRampToValueAtTime(0.15,t+i*0.15+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.15+0.5);o.connect(g);g.connect(audioCtx.destination);o.start(t+i*0.15);o.stop(t+i*0.15+0.5)})}
+function playErase(){if(!soundOn||!audioCtx)return;var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sawtooth';o.frequency.value=200+Math.random()*100;g.gain.setValueAtTime(0.02,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.03);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.03)}
 
-document.addEventListener('mousemove', function(e) {
-if (win.style.display === 'block') return;
-if (rotating) {
-var r = card.getBoundingClientRect();
-var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-var angle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
-rotation = rotStartRot + (angle - rotStartAngle);
-updateRotation();
-checkWin();
-} else if (dragging) {
-card.style.left = (e.clientX - dragOx) + 'px';
-card.style.top = (e.clientY - dragOy) + 'px';
-}
-});
+var cardData=[
+  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1},
+  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1},
+  {el:null,targetX:0,targetY:0,locked:false,rotation:0,scale:1}
+];
+var dragIdx=-1,dragOx=0,dragOy=0;
+var rotIdx=-1,rotStartAngle=0,rotStartRot=0;
+var phase='memory';
+var currentLevel=1;
+var levelConfigs={};
 
-document.addEventListener('mouseup', function() {
-dragging = false;
-rotating = false;
-});
+var startScreen=document.getElementById('start-screen');
+var gameArea=document.getElementById('game-area');
+var winScreen=document.getElementById('win-screen');
+var levelInfo=document.getElementById('level-info');
+var hintOverlay=document.getElementById('hint-overlay');
+var sketchCanvas=document.getElementById('sketch-canvas');
+var sketchCtx=sketchCanvas.getContext('2d');
 
-function checkWin() {
-var a = Math.abs(rotation % 360);
-if (a > 180) a = 360 - a;
-if (a < 2) {
-card.style.transition = 'transform 0.3s ease';
-rotation = 0;
-card.style.transform = 'rotate(0deg)';
-setTimeout(function() {
-win.style.display = 'block';
-}, 350);
-}
+document.getElementById('start-btn').addEventListener('click',function(){initAudio();startScreen.style.display='none';gameArea.style.display='block';currentLevel=1;setupLevel()});
+document.getElementById('sound-btn').addEventListener('click',function(){soundOn=!soundOn;this.textContent=soundOn?'🔊':'🔇'});
+document.getElementById('replay-btn').addEventListener('click',function(){winScreen.style.display='none';currentLevel=1;setupLevel()});
+document.getElementById('hint-btn').addEventListener('click',function(){hintOverlay.style.display='flex';initSketch()});
+document.getElementById('hint-close').addEventListener('click',function(){hintOverlay.style.display='none'});
+
+/* ========== level config ========== */
+function generateLevelConfig(level){
+  var w=window.innerWidth,h=window.innerHeight,baseSize=120;
+  var positions;
+  if(level===1){
+    positions=[
+      {x:Math.max(20,(w-baseSize)/4),y:Math.max(60,(h-baseSize)/4)},
+      {x:(w-baseSize)/2,y:(h-baseSize)/2},
+      {x:Math.min(w-baseSize-20,w-(w-baseSize)/4-baseSize),y:Math.min(h-baseSize-60,h-(h-baseSize)/4-baseSize)}
+    ];
+  }else{
+    positions=[
+      {x:Math.max(20,(w-baseSize)/3),y:Math.max(60,(h-baseSize)/3)},
+      {x:Math.min(w-baseSize-20,w-(w-baseSize)*2/3),y:Math.max(60,(h-baseSize)*2/3)},
+      {x:(w-baseSize)/2,y:Math.min(h-baseSize-60,h-(h-baseSize)/4-baseSize)}
+    ];
+  }
+  var scales=[0.7+Math.random()*0.3, 0.7+Math.random()*0.3, 0.7+Math.random()*0.3];
+  var scatter=[];
+  for(var i=0;i<3;i++){
+    var cs=baseSize*scales[i];
+    scatter.push({
+      x:Math.random()*(w-cs-40)+20,
+      y:Math.random()*(h-cs-40)+20,
+      r:Math.floor(Math.random()*90)-45
+    });
+  }
+  return{positions:positions,scales:scales,scatter:scatter,memoryTime:level===1?2000:1200};
 }
 
-setup();
-window.addEventListener('resize', function() {
-var w = window.innerWidth, h = window.innerHeight;
-var cw = card.offsetWidth || 250, ch = card.offsetHeight || 250;
-var cx = (w - cw) / 2, cy = (h - ch) / 2;
-if (cx < 0) cx = 0;
-if (cy < 0) cy = 0;
-card.style.left = cx + 'px';
-card.style.top = cy + 'px';
+/* ========== SVG animals ========== */
+var animals=[
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="35" ry="30" fill="#f5a623"/><circle cx="60" cy="55" r="25" fill="#f5a623"/><polygon points="35,35 28,10 48,30" fill="#f5a623"/><polygon points="85,35 92,10 72,30" fill="#f5a623"/><circle cx="48" cy="50" r="4" fill="#333"/><circle cx="72" cy="50" r="4" fill="#333"/><ellipse cx="60" cy="60" rx="5" ry="3" fill="#333"/><path d="M55 65 Q60 72 65 65" stroke="#333" fill="none" stroke-width="2"/></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="30" ry="28" fill="#4ecdc4"/><circle cx="60" cy="55" r="22" fill="#4ecdc4"/><circle cx="42" cy="35" r="10" fill="#4ecdc4"/><circle cx="78" cy="35" r="10" fill="#4ecdc4"/><circle cx="50" cy="50" r="3" fill="#333"/><circle cx="70" cy="50" r="3" fill="#333"/><ellipse cx="60" cy="58" rx="4" ry="3" fill="#333"/><path d="M54 64 Q60 70 66 64" stroke="#333" fill="none" stroke-width="2"/></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect fill="#fff" width="120" height="120" rx="10"/><ellipse cx="60" cy="65" rx="32" ry="26" fill="#a855f7"/><circle cx="60" cy="50" r="22" fill="#a855f7"/><ellipse cx="38" cy="32" rx="8" ry="12" fill="#a855f7"/><ellipse cx="82" cy="32" rx="8" ry="12" fill="#a855f7"/><circle cx="50" cy="46" r="3.5" fill="#fff"/><circle cx="50" cy="46" r="2" fill="#333"/><circle cx="70" cy="46" r="3.5" fill="#fff"/><circle cx="70" cy="46" r="2" fill="#333"/><ellipse cx="60" cy="55" rx="3" ry="2" fill="#ff8fab"/><path d="M54 60 Q60 66 66 60" stroke="#333" fill="none" stroke-width="2"/></svg>'
+];
+
+/* ========== setup ========== */
+function setupLevel(){
+  levelConfigs[currentLevel]=generateLevelConfig(currentLevel);
+  var cfg=levelConfigs[currentLevel];
+  var w=window.innerWidth,h=window.innerHeight,baseSize=120;
+
+  for(var i=0;i<3;i++){
+    var c=cardData[i];
+    c.el=document.getElementById('card'+(i+1));
+    c.el.querySelector('img').src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(animals[i])));
+    c.scale=cfg.scales[i];
+    c.el.style.width=Math.round(baseSize*c.scale)+'px';
+    c.targetX=cfg.positions[i].x;
+    c.targetY=cfg.positions[i].y;
+    c.locked=false;
+    c.rotation=0;
+    c.el.style.transition='none';
+    c.el.style.left=c.targetX+'px';
+    c.el.style.top=c.targetY+'px';
+    c.el.style.transform='rotate(0deg) scale('+c.scale+')';
+    c.el.classList.remove('locked');
+    c.el.style.display='block';
+  }
+
+  levelInfo.textContent='第 '+currentLevel+' 关 — 记住位置！';
+  phase='memory';
+
+  setTimeout(function(){
+    phase='scatter';
+    for(var i=0;i<3;i++){
+      var c=cardData[i];
+      var s=cfg.scatter[i];
+      c.rotation=s.r;
+      c.el.style.left=s.x+'px';
+      c.el.style.top=s.y+'px';
+      c.el.style.transform='rotate('+s.r+'deg) scale('+c.scale+')';
+    }
+    levelInfo.textContent='第 '+currentLevel+' 关 — 拖到正确位置并转正！';
+    setTimeout(function(){phase='play'},500);
+  },cfg.memoryTime);
+}
+
+/* ========== hint: outline + pencil scribble ========== */
+function initSketch(){
+  var box=document.querySelector('#hint-overlay .hint-box');
+  var bw=box.offsetWidth,bh=box.offsetHeight;
+  sketchCanvas.width=bw;
+  sketchCanvas.height=bh;
+  sketchCtx.clearRect(0,0,bw,bh);
+
+  // light background
+  sketchCtx.fillStyle='#f0ead6';
+  sketchCtx.fillRect(0,0,bw,bh);
+
+  // draw dashed outlines of correct card positions
+  var cfg=levelConfigs[currentLevel];
+  if(cfg){
+    var sx=bw/window.innerWidth, sy=bh/window.innerHeight;
+    for(var i=0;i<3;i++){
+      var c=cardData[i];
+      if(c.locked)continue;
+      var cx=c.targetX*sx, cy=c.targetY*sy;
+      var cw=120*c.scale*sx, ch=120*c.scale*sy;
+      // dashed rect
+      sketchCtx.strokeStyle='rgba(80,80,80,0.45)';
+      sketchCtx.lineWidth=2;
+      sketchCtx.setLineDash([6,4]);
+      sketchCtx.strokeRect(cx,cy,cw,ch);
+      sketchCtx.setLineDash([]);
+      // number inside
+      sketchCtx.fillStyle='rgba(80,80,80,0.3)';
+      sketchCtx.font='bold '+Math.round(cw*0.35)+'px Arial';
+      sketchCtx.textAlign='center';
+      sketchCtx.textBaseline='middle';
+      sketchCtx.fillText((i+1)+'',cx+cw/2,cy+ch/2);
+    }
+  }
+
+  // cover with pencil scribbles
+  sketchCtx.strokeStyle='rgba(90,90,90,0.88)';
+  sketchCtx.lineWidth=2;
+  for(var i=0;i<250;i++){
+    sketchCtx.beginPath();
+    sketchCtx.moveTo(Math.random()*bw,Math.random()*bh);
+    sketchCtx.lineTo(Math.random()*bw,Math.random()*bh);
+    sketchCtx.stroke();
+  }
+  for(var j=0;j<12;j++){
+    sketchCtx.beginPath();
+    var cx=Math.random()*bw,cy=Math.random()*bh;
+    for(var k=0;k<30;k++){
+      var angle=k*0.5,r=k*2;
+      sketchCtx.lineTo(cx+Math.cos(angle)*r,cy+Math.sin(angle)*r);
+    }
+    sketchCtx.stroke();
+  }
+  for(var m=0;m<60;m++){
+    sketchCtx.beginPath();
+    var sx2=Math.random()*bw,sy2=Math.random()*bh;
+    sketchCtx.moveTo(sx2,sy2);
+    sketchCtx.lineTo(sx2+40+Math.random()*80,sy2+40+Math.random()*80);
+    sketchCtx.stroke();
+  }
+
+  // erase interaction
+  var isErasing=false;
+  function startErase(x,y){isErasing=true;erase(x,y)}
+  function moveErase(x,y){if(isErasing){erase(x,y);playErase()}}
+  function endErase(){isErasing=false}
+  function erase(x,y){
+    sketchCtx.globalCompositeOperation='destination-out';
+    sketchCtx.beginPath();
+    sketchCtx.arc(x,y,22,0,Math.PI*2);
+    sketchCtx.fill();
+    sketchCtx.globalCompositeOperation='source-over';
+  }
+  sketchCanvas.onmousedown=function(e){var r=sketchCanvas.getBoundingClientRect();startErase(e.clientX-r.left,e.clientY-r.top)};
+  sketchCanvas.onmousemove=function(e){var r=sketchCanvas.getBoundingClientRect();moveErase(e.clientX-r.left,e.clientY-r.top)};
+  sketchCanvas.onmouseup=endErase;
+  sketchCanvas.onmouseleave=endErase;
+  sketchCanvas.ontouchstart=function(e){e.preventDefault();var r=sketchCanvas.getBoundingClientRect();var t=e.touches[0];startErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
+  sketchCanvas.ontouchmove=function(e){e.preventDefault();var r=sketchCanvas.getBoundingClientRect();var t=e.touches[0];moveErase(t.clientX-r.left,t.clientY-r.top)},{passive:false};
+  sketchCanvas.ontouchend=endErase;
+}
+
+/* ========== win check: position AND rotation ========== */
+function checkWin(idx){
+  var c=cardData[idx];
+  if(c.locked||phase!=='play')return;
+
+  // rotation must be ~0° (within 5°)
+  var rot=c.rotation%360;
+  if(rot<0)rot+=360;
+  if(rot>180)rot=360-rot;
+  if(rot>=5)return;  // not upright yet
+
+  // position must be close
+  var r=c.el.getBoundingClientRect();
+  var cx=r.left+r.width/2, cy=r.top+r.height/2;
+  var tx=c.targetX+c.el.offsetWidth/2, ty=c.targetY+c.el.offsetHeight/2;
+  var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
+  if(dist>=50)return;
+
+  // passed!
+  playClick();
+  c.locked=true;
+  c.el.classList.add('locked');
+  c.el.style.transition='all 0.3s ease';
+  c.el.style.left=c.targetX+'px';
+  c.el.style.top=c.targetY+'px';
+  c.el.style.transform='rotate(0deg) scale('+c.scale+')';
+  setTimeout(function(){c.el.style.transition=''},300);
+  playLock();
+
+  var allLocked=true;
+  for(var i=0;i<3;i++){if(!cardData[i].locked){allLocked=false;break}}
+  if(allLocked){
+    setTimeout(function(){
+      playWin();
+      if(currentLevel<2){
+        currentLevel++;
+        setupLevel();
+      }else{
+        document.getElementById('win-text').textContent='两关全部通过！🎊';
+        winScreen.style.display='flex';
+      }
+    },500);
+  }
+}
+
+/* ========== drag & rotate ========== */
+document.addEventListener('touchstart',function(e){
+  if(phase!=='play')return;
+  initAudio();
+  if(e.touches.length===2){
+    var t1=e.touches[0],t2=e.touches[1];
+    for(var i=0;i<3;i++){
+      var c=cardData[i];
+      if(c.locked)continue;
+      var r=c.el.getBoundingClientRect(),m=30;
+      if(t1.clientX>=r.left-m&&t1.clientX<=r.right+m&&t1.clientY>=r.top-m&&t1.clientY<=r.bottom+m){
+        rotIdx=i;
+        rotStartAngle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
+        rotStartRot=c.rotation;
+        break;
+      }
+    }
+  }else{
+    var t=e.touches[0];
+    for(var i=0;i<3;i++){
+      var c=cardData[i];
+      if(c.locked)continue;
+      var r=c.el.getBoundingClientRect(),m=30;
+      if(t.clientX>=r.left-m&&t.clientX<=r.right+m&&t.clientY>=r.top-m&&t.clientY<=r.bottom+m){
+        dragIdx=i;dragOx=t.clientX-parseInt(c.el.style.left);dragOy=t.clientY-parseInt(c.el.style.top);
+        break;
+      }
+    }
+  }
+},{passive:false});
+
+document.addEventListener('touchmove',function(e){
+  if(phase!=='play')return;
+  e.preventDefault();
+  if(rotIdx>=0&&e.touches.length===2){
+    var t1=e.touches[0],t2=e.touches[1],c=cardData[rotIdx];
+    var angle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
+    c.rotation=rotStartRot+(angle-rotStartAngle);
+    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
+    checkWin(rotIdx);
+  }else if(dragIdx>=0&&e.touches.length===1){
+    var t=e.touches[0],c=cardData[dragIdx];
+    c.el.style.left=(t.clientX-dragOx)+'px';
+    c.el.style.top=(t.clientY-dragOy)+'px';
+  }
+},{passive:false});
+
+document.addEventListener('touchend',function(e){
+  dragIdx=-1;
+  if(e.touches.length<2)rotIdx=-1;
 });
+
+document.addEventListener('mousedown',function(e){
+  if(phase!=='play')return;
+  initAudio();
+  if(e.shiftKey){
+    for(var i=0;i<3;i++){
+      var c=cardData[i];
+      if(c.locked)continue;
+      var r=c.el.getBoundingClientRect();
+      if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
+        rotIdx=i;
+        rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;
+        rotStartRot=c.rotation;
+        e.preventDefault();break;
+      }
+    }
+  }else{
+    for(var i=0;i<3;i++){
+      var c=cardData[i];
+      if(c.locked)continue;
+      var r=c.el.getBoundingClientRect();
+      if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
+        dragIdx=i;dragOx=e.clientX-parseInt(c.el.style.left);dragOy=e.clientY-parseInt(c.el.style.top);
+        e.preventDefault();break;
+      }
+    }
+  }
+});
+
+document.addEventListener('mousemove',function(e){
+  if(phase!=='play')return;
+  if(rotIdx>=0){
+    var c=cardData[rotIdx];
+    var angle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;
+    c.rotation=rotStartRot+(angle-rotStartAngle);
+    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
+    checkWin(rotIdx);
+  }else if(dragIdx>=0){
+    var c=cardData[dragIdx];
+    c.el.style.left=(e.clientX-dragOx)+'px';
+    c.el.style.top=(e.clientY-dragOy)+'px';
+  }
+});
+
+document.addEventListener('mouseup',function(){dragIdx=-1;rotIdx=-1});
 </script>
 </body>
 </html>
