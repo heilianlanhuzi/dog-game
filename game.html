@@ -128,18 +128,11 @@ function setupLevel(){
   replayBtn.style.display='block';
 
   if(currentLevel===1){
-    phase='memory';
-    var rots=[90,180,270];
     var c=cardData[0];
-    c.rotation=0;
+    c.rotation=20+Math.floor(Math.random()*46);
     c.el.style.transition='none';
-    c.el.style.transform='rotate(0deg) scale('+c.scale+')';
-    setTimeout(function(){
-      c.rotation=rots[Math.floor(Math.random()*rots.length)];
-      c.el.style.transition='all 0.5s ease';
-      c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
-      setTimeout(function(){c.el.style.transition='';phase='play'},500);
-    },1000);
+    c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
+    phase='play';
   }else{
     phase='memory';
     setTimeout(function(){
