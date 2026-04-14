@@ -273,7 +273,7 @@ document.addEventListener('touchend',function(e){dragIdx=-1;if(e.touches.length<
 document.addEventListener('mousedown',function(e){
   if(phase!=='play')return;
   initAudio();
-  if(e.shiftKey){
+  if(!e.shiftKey){
     for(var i=0;i<cardData.length;i++){
       var c=cardData[i];
       if(c.locked||c.el.style.display==='none')continue;
