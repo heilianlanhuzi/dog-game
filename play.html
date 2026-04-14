@@ -23,9 +23,9 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 #win-btn{padding:12px 30px;font-size:20px;border:none;border-radius:8px;background:#4caf50;color:#fff;cursor:pointer}
 #erase-canvas{position:absolute;top:0;left:0;z-index:3;cursor:crosshair;border-radius:10px;pointer-events:none}
 #erase-canvas.active{pointer-events:auto}
-#erase-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;z-index:8;flex-direction:column;pointer-events:none}
-#erase-overlay p{color:#fff;margin-bottom:10px;font-size:18px}
-#erase-bar{width:300px;height:20px;background:#555;border-radius:10px;overflow:hidden;pointer-events:auto}
+#erase-overlay{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);padding:12px 24px;border-radius:20px;display:none;justify-content:center;align-items:center;flex-direction:column;z-index:8}
+#erase-overlay p{color:#fff;margin-bottom:8px;font-size:16px;white-space:nowrap}
+#erase-bar{width:200px;height:14px;background:#555;border-radius:10px;overflow:hidden}
 #erase-fill{height:100%;background:#4caf50;width:0%;transition:width 0.2s}
 #erase-close{margin-top:15px;padding:10px 25px;border:none;border-radius:20px;background:#f44336;color:#fff;font-size:18px;cursor:pointer}
 </style>
@@ -196,6 +196,7 @@ function setupLevel(){
   }else if(currentLevel===3){
     phase='memory';
     setTimeout(function(){
+      phase='play';
       initErase();
     },cfg.memoryTime);
   }
