@@ -17,9 +17,10 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 #start-btn{padding:15px 40px;font-size:24px;border:none;border-radius:30px;background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
 #game-area{display:none;position:relative;width:100vw;height:100vh}
 #replay-btn{position:fixed;top:10px;right:10px;font-size:20px;background:rgba(0,0,0,0.4);color:#fff;border:none;border-radius:50%;width:44px;height:44px;cursor:pointer;z-index:5}
-#win-screen{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:10}
-#win-screen h1{font-size:36px;color:#ffd700;margin-bottom:20px;text-shadow:0 0 10px rgba(255,215,0,0.5)}
-#win-btn{padding:12px 30px;font-size:20px;border:none;border-radius:20px;background:#4caf50;color:#fff;cursor:pointer;margin:5px}
+#win-screen{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:40px 60px;border-radius:20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.4);z-index:10;display:none;flex-direction:column;align-items:center}
+#win-screen h1{font-size:28px;color:#4CAF50;margin:0 0 10px 0}
+#win-screen p{color:#666;margin:0 0 20px 0;font-size:18px}
+#win-btn{padding:12px 30px;font-size:20px;border:none;border-radius:8px;background:#4caf50;color:#fff;cursor:pointer}
 </style>
 </head>
 <body>
@@ -38,9 +39,9 @@ body{overflow:hidden;background:#6b8f4a;touch-action:none;-webkit-user-select:no
 <button id="replay-btn" style="display:none">🔄</button>
 
 <div id="win-screen">
-  <h1>🎉</h1>
-  <p id="win-text" style="color:#fff;margin-bottom:15px;font-size:18px"></p>
-  <button id="win-btn">再来一次</button>
+  <h1>整理成功！</h1>
+  <p id="win-text"></p>
+  <button id="win-btn">下一关</button>
 </div>
 
 <div id="debug-info" style="position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#0f0;padding:4px 12px;border-radius:10px;font-size:14px;font-family:monospace;z-index:5;display:none"></div>
@@ -212,9 +213,10 @@ function checkWin(idx){
     setTimeout(function(){
       playWin();
       if(currentLevel<2){
-        document.getElementById('win-text').textContent='第 '+currentLevel+' 关通关！🎉';
+        document.getElementById('win-text').textContent='第 '+currentLevel+' 关通过！';
         winScreen.style.display='flex';
         var savedLevel=currentLevel;
+        document.getElementById('win-btn').textContent='下一关';
         document.getElementById('win-btn').onclick=function(){
           winScreen.style.display='none';
           currentLevel=savedLevel+1;
@@ -224,6 +226,8 @@ function checkWin(idx){
       }else{
         document.getElementById('win-text').textContent='全部通关！🎊';
         winScreen.style.display='flex';
+        document.getElementById('win-btn').textContent='重新开始';
+        document.getElementById('win-btn').onclick=function(){winScreen.style.display='none';currentLevel=1;requestAnimationFrame(function(){requestAnimationFrame(setupLevel)})};
       }
     },300);
   }
