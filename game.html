@@ -462,6 +462,7 @@ document.addEventListener('touchmove',function(e){
     var t=e.touches[0],c=cardData[dragIdx];
     c.el.style.left=(t.clientX-dragOx)+'px';
     c.el.style.top=(t.clientY-dragOy)+'px';
+    checkWin(dragIdx);
   }
 },{passive:false});
 
