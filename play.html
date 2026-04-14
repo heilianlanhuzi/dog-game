@@ -225,29 +225,18 @@ function checkWin(idx){
 document.addEventListener('touchstart',function(e){
   if(phase!=='play')return;
   initAudio();
-  if(e.touches.length===2){
-    var t1=e.touches[0],t2=e.touches[1];
-    for(var i=0;i<cardData.length;i++){
-      var c=cardData[i];
-      if(c.locked||c.el.style.display==='none')continue;
-      var r=c.el.getBoundingClientRect(),m=30;
-      if(t1.clientX>=r.left-m&&t1.clientX<=r.right+m&&t1.clientY>=r.top-m&&t1.clientY<=r.bottom+m){
-        rotIdx=i;
-        rotStartAngle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
-        rotStartRot=c.rotation;
-        break;
-      }
-    }
-  }else{
-    var t=e.touches[0];
-    for(var i=0;i<cardData.length;i++){
-      var c=cardData[i];
-      if(c.locked||c.el.style.display==='none')continue;
-      var r=c.el.getBoundingClientRect(),m=30;
-      if(t.clientX>=r.left-m&&t.clientX<=r.right+m&&t.clientY>=r.top-m&&t.clientY<=r.bottom+m){
-        dragIdx=i;dragOx=t.clientX-parseInt(c.el.style.left);dragOy=t.clientY-parseInt(c.el.style.top);
-        break;
-      }
+  var t=e.touches[0];
+  for(var i=0;i<cardData.length;i++){
+    var c=cardData[i];
+    if(c.locked||c.el.style.display==='none')continue;
+    var r=c.el.getBoundingClientRect(),m=30;
+    if(t.clientX>=r.left-m&&t.clientX<=r.right+m&&t.clientY>=r.top-m&&t.clientY<=r.bottom+m){
+      rotIdx=i;
+      rotStartRot=c.rotation;
+      rotStartAngle=Math.atan2(t.clientY,t.clientX)*180/Math.PI;
+      dragOx=t.clientX-parseInt(c.el.style.left);
+      dragOy=t.clientY-parseInt(c.el.style.top);
+      break;
     }
   }
 },{passive:false});
@@ -255,20 +244,16 @@ document.addEventListener('touchstart',function(e){
 document.addEventListener('touchmove',function(e){
   if(phase!=='play')return;
   e.preventDefault();
-  if(rotIdx>=0&&e.touches.length===2){
-    var t1=e.touches[0],t2=e.touches[1],c=cardData[rotIdx];
-    var angle=Math.atan2(t2.clientY-t1.clientY,t2.clientX-t1.clientX)*180/Math.PI;
+  if(rotIdx>=0&&e.touches.length===1){
+    var t=e.touches[0],c=cardData[rotIdx];
+    var angle=Math.atan2(t.clientY,t.clientX)*180/Math.PI;
     c.rotation=rotStartRot+(angle-rotStartAngle);
     c.el.style.transform='rotate('+c.rotation+'deg) scale('+c.scale+')';
     checkWin(rotIdx);
-  }else if(dragIdx>=0&&e.touches.length===1){
-    var t=e.touches[0],c=cardData[dragIdx];
-    c.el.style.left=(t.clientX-dragOx)+'px';
-    c.el.style.top=(t.clientY-dragOy)+'px';
   }
 },{passive:false});
 
-document.addEventListener('touchend',function(e){dragIdx=-1;if(e.touches.length<2)rotIdx=-1});
+document.addEventListener('touchend',function(){rotIdx=-1});
 
 document.addEventListener('mousedown',function(e){
   if(phase!=='play')return;
@@ -278,8 +263,11 @@ document.addEventListener('mousedown',function(e){
       var c=cardData[i];
       if(c.locked||c.el.style.display==='none')continue;
       var r=c.el.getBoundingClientRect();
+      console.log('check card'+i+' locked='+c.locked+' disp='+c.el.style.display+' pos='+Math.round(r.left)+','+Math.round(r.top)+' mouse='+Math.round(e.clientX)+','+Math.round(e.clientY)+' hit='+(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom));
       if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
-        rotIdx=i;rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;rotStartRot=c.rotation;e.preventDefault();break;
+        rotIdx=i;rotStartAngle=Math.atan2(e.clientY,e.clientX)*180/Math.PI;rotStartRot=c.rotation;
+        console.log('rotIdx set to '+i+' startAngle='+rotStartAngle+' startRot='+c.rotation);
+        e.preventDefault();break;
       }
     }
   }else{
