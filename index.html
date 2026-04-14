@@ -250,10 +250,13 @@ function initEraseAll(){
     canvas.style.position='absolute';
     canvas.style.left=c.el.style.left;
     canvas.style.top=c.el.style.top;
-    canvas.style.zIndex='3';
+    canvas.style.zIndex='10';
     canvas.style.cursor='crosshair';
     canvas.style.borderRadius='10px';
     canvas.style.display='block';
+    canvas.style.pointerEvents='auto';
+    // 卡片不拦截事件
+    c.el.style.pointerEvents='none';
     gameArea.appendChild(canvas);
     eraseCanvases.push(canvas);
     eraseCardState.push({erasing:false,erased:false,done:false});
