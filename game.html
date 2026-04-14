@@ -231,8 +231,28 @@ function setupLevel(){
 
 /* ===== Level 3: Erase all cards to find target ===== */
 var eraseCanvases=[];
-var eraseCardState=[]; // {erasing:false, erased:false}
+var eraseCardState=[];
 var targetAnimalIdx=0;
+
+// 第二关目标位置标记
+var targetMarkers=[];
+function showTargetMarkers(){
+  for(var i=0;i<3;i++){
+    var c=cardData[i];
+    var marker=document.createElement('div');
+    marker.style.cssText='position:absolute;width:120px;height:120px;border:2px dashed rgba(255,255,255,0.4);border-radius:10px;pointer-events:none;z-index:1;';
+    marker.style.left=c.targetX+'px';
+    marker.style.top=c.targetY+'px';
+    marker.style.width=Math.round(120*c.scale)+'px';
+    marker.style.height=Math.round(120*c.scale)+'px';
+    gameArea.appendChild(marker);
+    targetMarkers.push(marker);
+  }
+}
+function hideTargetMarkers(){
+  for(var i=0;i<targetMarkers.length;i++){targetMarkers[i].remove()}
+  targetMarkers=[];
+}
 
 function initEraseAll(){
   var cfg=levelConfigs[currentLevel];
@@ -379,11 +399,25 @@ function checkWin(idx){
   var c=cardData[idx];
   if(c.locked||phase!=='play')return;
 
+  // 第二关：先检测位置吸附（不管旋转角度）
+  if(currentLevel===2){
+    var r=c.el.getBoundingClientRect();
+    var cx=r.left+r.width/2,cy=r.top+r.height/2;
+    var tx=c.targetX+c.el.offsetWidth/2,ty=c.targetY+c.el.offsetHeight/2;
+    var dist=Math.sqrt(Math.pow(cx-tx,2)+Math.pow(cy-ty,2));
+    if(dist<=30){
+      c.el.style.transition='all 0.2s ease';
+      c.el.style.left=c.targetX+'px';
+      c.el.style.top=c.targetY+'px';
+      setTimeout(function(){c.el.style.transition=''},200);
+    }
+  }
+
   // 旋转必须在 ±1° 内
   var rotDiff=normalizeRot(c.rotation-c.targetRot);
   if(rotDiff>1)return;
 
-  // 第二关：旋转正确 + 位置已在吸附范围内
+  // 第二关：旋转正确且位置在吸附范围内才通关
   if(currentLevel===2){
     var r=c.el.getBoundingClientRect();
     var cx=r.left+r.width/2,cy=r.top+r.height/2;
